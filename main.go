@@ -135,7 +135,7 @@ type keyCloakResponse struct {
 }
 
 // publicKeyFromKeyCloak - get RSA Public Key from external storage (KeyCloak)
-func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) {
+func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refactor (da@kodix.ru)
 	r, err := http.Get(fmt.Sprintf("%s%s", iss, keycloakSuffix))
 	if err != nil {
 		return nil, err
@@ -238,7 +238,7 @@ func setXAuthHeaders(r *http.Request, tok *jwt.Token) {
 				r.Header.Add(fmt.Sprintf("X-Auth-%s", http.CanonicalHeaderKey(k)), h.(string))
 			}
 			continue
-		case map[string]interface{}:
+		case map[string]interface{}: // TODO: replace with recursive func (da@kodix.ru)
 			if k == "resource_access" {
 				accessXAuthHeaders(v, r)
 				continue
