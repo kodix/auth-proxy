@@ -21,15 +21,17 @@ import (
 	"strconv"
 	"errors"
 	"github.com/gambol99/go-oidc/jose"
-	"kodix.ru/utils/health"
+	"github.com/kodix/utils/health"
 	"io"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"kodix.ru/utils/mw"
+	"github.com/kodix/utils/mw"
 	"github.com/prometheus/client_golang/prometheus"
-	"kodix.ru/utils/must"
+	"github.com/kodix/utils/must"
 	"os/signal"
 	"syscall"
 	log2 "log"
+	"crypto/rand"
+	"encoding/hex"
 )
 
 var keys = newKeyCache()
@@ -86,7 +88,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/health", health.Health(cacheCount))
 	r.Handle("/metrics", promhttp.Handler())
-	r.PathPrefix("/").HandlerFunc(mw.MetricsMw(dur, bp, health.BackPressure(http.HandlerFunc(handler))))
+	r.PathPrefix("/").HandlerFunc(mw.MetricsMw(dur, bp, requestIdMw(health.BackPressure(http.HandlerFunc(handler)))))
 	log.Fatalln(http.ListenAndServe(argv.Addr, r))
 }
 
@@ -124,7 +126,6 @@ func getKey(token *jwt.Token) (interface{}, error) {
 		}
 		keys.Set(tok, k)
 	}
-	log.Debugln("getKey: key:", k)
 	return k, nil
 }
 
@@ -154,7 +155,6 @@ func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refact
 
 	j := k.Keys[0]
 
-	log.Debugln(" publicKeyFromKeyCloak: JWK:", j)
 	return &rsa.PublicKey{
 		N: j.Modulus,
 		E: j.Exponent,
@@ -163,6 +163,7 @@ func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refact
 
 // handler - http.Handler
 func handler(w http.ResponseWriter, r *http.Request) {
+	logger := mw.LoggerFromCtx(r)
 
 	clearXAuthHeaders(r)
 
@@ -175,14 +176,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		} else if strings.HasPrefix(tokStr, "Bearer ") {
 			tokStr = strings.TrimPrefix(tokStr, "Bearer ")
 		} else {
-			log.Errorln(" http-error:", "token type is not bearer")
+			logger.Errorln("http-error:", "token type is not bearer")
 			http.Error(w, "token type is not bearer", http.StatusUnauthorized)
 			return
 		}
 
 		tok, err := jwt.Parse(tokStr, getKey)
 		if err != nil {
-			log.Errorln(" http-error:", err)
+			logger.Errorln("jwt parsing error:", err)
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
@@ -199,7 +200,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	cl := http.DefaultClient
 	resp, err := cl.Do(r)
 	if err != nil {
-		log.Errorln(" http-error:", err)
+		logger.Errorln("next service: http-error:", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -210,7 +211,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
-		log.Errorln(" http-error:", err)
+		logger.Errorln("response body copying error:", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -283,7 +284,7 @@ func compileRegex() {
 		r := regexp.MustCompile(k)
 		regex[r] = v
 	}
-	log.Infoln(" regexp compiled")
+	log.Infoln("regexp compiled")
 }
 
 func loadConfig() {
@@ -295,10 +296,11 @@ func loadConfig() {
 
 // urlRewrite - rewrite http.Request.URL in given request
 func urlRewrite(r *http.Request) error {
+	logger := mw.LoggerFromCtx(r)
 	if r.URL == nil {
 		return errors.New("empty URL")
 	}
-	defer log.Debugln(" replaced request:", r)
+	defer logger.Infoln("replaced request:", r)
 
 	u := []byte(fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery))
 	for pattern, replace := range regex {
@@ -319,6 +321,23 @@ func urlRewrite(r *http.Request) error {
 	return nil
 }
 
+var requestIdKey = "X-Request-Id"
+
+func requestIdMw(next http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.Header.Get(requestIdKey)
+		if id == "" {
+			id = randomRequestId().String()
+			r.Header.Set(requestIdKey, id)
+		}
+		next.ServeHTTP(w, r)
+	}
+}
+
+func randomRequestId() UUID {
+	return New()
+}
+
 func issuerExists(iss string) bool {
 	for _, v := range cfg.Issuers {
 		if v == iss {
@@ -326,4 +345,47 @@ func issuerExists(iss string) bool {
 		}
 	}
 	return false
+}
+
+// UUID is a 128 bit (16 byte) Universal Unique IDentifier as defined in RFC
+// 4122.
+type UUID [16]byte
+
+// New creates a new random (Version 4) UUID or panics. The strength of the
+// UUIDs is based on the strength of the crypto/rand package.
+func New() UUID {
+	uuid, err := NewUUID()
+	if err != nil {
+		panic(err)
+	}
+	return uuid
+}
+
+// NewUUID returns a random (Version 4) UUID.
+func NewUUID() (UUID, error) {
+	var uuid UUID
+	_, err := io.ReadFull(rand.Reader, uuid[:])
+	uuid[6] = (uuid[6] & 0x0f) | 0x40
+	uuid[8] = (uuid[8] & 0x3f) | 0x80
+	return uuid, err
+}
+
+// encode converts uuid to string form (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).
+func encode(uuid UUID, data []byte) {
+	hex.Encode(data[:], uuid[:4])
+	data[8] = '-'
+	hex.Encode(data[9:13], uuid[4:6])
+	data[13] = '-'
+	hex.Encode(data[14:18], uuid[6:8])
+	data[18] = '-'
+	hex.Encode(data[19:23], uuid[8:10])
+	data[23] = '-'
+	hex.Encode(data[24:], uuid[10:])
+}
+
+// String returns the string form of uuid, xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+func (uuid UUID) String() string {
+	var data [36]byte
+	encode(uuid, data[:])
+	return string(data[:])
 }
