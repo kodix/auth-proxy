@@ -16,7 +16,6 @@ before_install:
   - dep ensure -v
   - go get -u github.com/alecthomas/gometalinter
   - gometalinter -i
-  - go get -u github.com/jstemmer/go-junit-report
 
 script:
   - gometalinter --vendor -D gotype gotypex -E safesql -s vendor ./... --deadline=5m --no-config
