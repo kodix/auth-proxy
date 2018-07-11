@@ -66,11 +66,11 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP)
 	go func() {
-		log.Infoln(" cache cleaner launched..")
+		log.Infoln("cache cleaner launched..")
 		for {
 			<-c
 			keys.Clear()
-			log.Infoln(" keys cache cleared")
+			log.Infoln("keys cache cleared")
 		}
 	}()
 
@@ -84,7 +84,7 @@ func main() {
 	})
 	prometheus.MustRegister(dur, bp)
 
-	log.Infoln(" server launched..")
+	log.Infoln("server launched..")
 	r := mux.NewRouter()
 	r.HandleFunc("/health", health.Health(cacheCount))
 	r.Handle("/metrics", promhttp.Handler())
@@ -136,7 +136,7 @@ type keyCloakResponse struct {
 }
 
 // publicKeyFromKeyCloak - get RSA Public Key from external storage (KeyCloak)
-func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refactor (da@kodix.ru)
+func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refactor
 	r, err := http.Get(fmt.Sprintf("%s%s", iss, keycloakSuffix))
 	if err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refact
 
 // handler - http.Handler
 func handler(w http.ResponseWriter, r *http.Request) {
-	logger := mw.LoggerFromCtx(r)
+	logger := mw.LoggerFromRequest(r)
 
 	clearXAuthHeaders(r)
 
@@ -239,7 +239,7 @@ func setXAuthHeaders(r *http.Request, tok *jwt.Token) {
 				r.Header.Add(fmt.Sprintf("X-Auth-%s", http.CanonicalHeaderKey(k)), h.(string))
 			}
 			continue
-		case map[string]interface{}: // TODO: replace with recursive func (da@kodix.ru)
+		case map[string]interface{}: // TODO: replace with recursive func
 			if k == "resource_access" {
 				accessXAuthHeaders(v, r)
 				continue
@@ -291,12 +291,12 @@ func loadConfig() {
 	c := new(config)
 	must.UnmarshalFile(c, argv.Config)
 	cfg = c
-	log.Infoln(" configuration loaded")
+	log.Infoln("configuration loaded")
 }
 
 // urlRewrite - rewrite http.Request.URL in given request
 func urlRewrite(r *http.Request) error {
-	logger := mw.LoggerFromCtx(r)
+	logger := mw.LoggerFromRequest(r)
 	if r.URL == nil {
 		return errors.New("empty URL")
 	}
