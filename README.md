@@ -1,5 +1,6 @@
 # Auth Proxy
 Parse and verify JWT-token, replace it with X-Auth headers.
+[![Build Status](https://travis-ci.org/kodix/auth-proxy.svg)](https://travis-ci.org/kodix/auth-proxy)
 
 ## Usage
 Run with '-h' argument
