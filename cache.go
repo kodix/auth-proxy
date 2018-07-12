@@ -5,13 +5,13 @@
 package main
 
 import (
-	"sync"
 	"crypto/rsa"
+	"sync"
 )
 
 // keyCache - local storage of RSA PublicKeys for given issuers
 type keyCache struct {
-	mu sync.RWMutex
+	mu   sync.RWMutex
 	data map[string]*rsa.PublicKey
 }
 
@@ -62,4 +62,3 @@ func (kc *keyCache) get(key string) (*rsa.PublicKey, bool) {
 func (kc *keyCache) count() int {
 	return len(kc.data)
 }
-

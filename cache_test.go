@@ -44,11 +44,11 @@ func Test_keyCache_Set(t *testing.T) {
 
 func Test_keyCache_Clear(t *testing.T) {
 	data := map[string]*rsa.PublicKey{
-		"test1": &rsa.PublicKey{},
-		"test2": &rsa.PublicKey{},
-		"test3": &rsa.PublicKey{},
-		"test4": &rsa.PublicKey{},
-		"test5": &rsa.PublicKey{},
+		"test1": {},
+		"test2": {},
+		"test3": {},
+		"test4": {},
+		"test5": {},
 	}
 	t.Run("usual", func(t *testing.T) {
 		kc := &keyCache{
