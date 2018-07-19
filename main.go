@@ -28,8 +28,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"sync"
+	"syscall"
 )
 
 var keys = newKeyCache()

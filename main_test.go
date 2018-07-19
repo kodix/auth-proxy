@@ -362,27 +362,27 @@ func Test_handler(t *testing.T) {
 	dkSoSbjT6FbfVFsaQY/2XMKh206wmHfMeLAVu55IyRvtdQMgonwd4O7mMYaI6Icg
 	nU4OxKmmF4BrYNpl5cS119PAApmnaRe3oebSgNNxFOsDUQKMtGg=
 	-----END RSA PRIVATE KEY-----`))
-			keys.Set("http://localhost/test/test", pk.Public().(*rsa.PublicKey))
+					keys.Set("http://localhost/test/test", pk.Public().(*rsa.PublicKey))
 
-			j = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoyMDAwMDAwMDAwMCwiaWF0IjoxNTE2MjM5MDIyfQ.ssOsv13F2gawY2i9ai3Za3CBck_ieRxzsryCk2WB-n-2ZsF9kjgTCTPqHkhcwHvc-Kh60f07pkdafgyAykvQQjySEBHx0b-qfsg3MNZjJewOPCrAHe-0p4PU0c_JLoWzbd-npe7k6U3Pov4muw_JCquGgouJ892q3alrmPeE3vpkVQcfur7WkBd4qPFr3AUVtTsECDVcPrlmMG_NxhhjwcGK8yvozTw4XtyjI0fwe06ECCtYOK4C5jHKPJhIr3Tp5sqe5-NR_lYWeBhNV25POsxonwBDVwt1RaslHPIplLSMmj8xdfllmlrbTPshCuBAl1Ocd05KoYEjEo3ZHbXXUg"
-			w = httptest.NewRecorder()
-			r, err = http.NewRequest(http.MethodGet, "http://localhost/test/test", nil)
-			if err != nil {
-					t.Errorf("%s", err.Error())
-			}
-			r.Header.Set("Authorization", j)
-			handler(w, r)
-			if w.Code == http.StatusUnauthorized {
-					t.Errorf()
-			}*/
+					j = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoyMDAwMDAwMDAwMCwiaWF0IjoxNTE2MjM5MDIyfQ.ssOsv13F2gawY2i9ai3Za3CBck_ieRxzsryCk2WB-n-2ZsF9kjgTCTPqHkhcwHvc-Kh60f07pkdafgyAykvQQjySEBHx0b-qfsg3MNZjJewOPCrAHe-0p4PU0c_JLoWzbd-npe7k6U3Pov4muw_JCquGgouJ892q3alrmPeE3vpkVQcfur7WkBd4qPFr3AUVtTsECDVcPrlmMG_NxhhjwcGK8yvozTw4XtyjI0fwe06ECCtYOK4C5jHKPJhIr3Tp5sqe5-NR_lYWeBhNV25POsxonwBDVwt1RaslHPIplLSMmj8xdfllmlrbTPshCuBAl1Ocd05KoYEjEo3ZHbXXUg"
+					w = httptest.NewRecorder()
+					r, err = http.NewRequest(http.MethodGet, "http://localhost/test/test", nil)
+					if err != nil {
+									t.Errorf("%s", err.Error())
+					}
+					r.Header.Set("Authorization", j)
+					handler(w, r)
+					if w.Code == http.StatusUnauthorized {
+									t.Errorf()
+					}*/
 }
 
 func Test_publicKeyFromKeyCloak(t *testing.T) {
 	st := http.NewServeMux()
-	st.HandleFunc("/auth/realms/test/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request){
+	st.HandleFunc("/auth/realms/test/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"jwks_uri":"http://localhost:1112/auth/realms/test/protocol/openid-connect/certs"}`))
 	})
-	st.HandleFunc("/auth/realms/error/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request){
+	st.HandleFunc("/auth/realms/error/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"jwks_uri":"http://localhost:1112/auth/realms/error/protocol/openid-connect/certs"}`))
 	})
 	st.HandleFunc("/auth/realms/test/protocol/openid-connect/certs", func(w http.ResponseWriter, r *http.Request) {
