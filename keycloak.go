@@ -24,16 +24,6 @@ type keyCloakResponse struct {
 	Keys []jose.JWK `json:"keys"`
 }
 
-func loadAllJwksAddresses() {
-	for iss := range cfg.Issuers {
-		addr, err := loadJwksAddress(iss)
-		if err != nil {
-			panic(err)
-		}
-		cfg.Issuers[iss] = addr
-	}
-}
-
 func loadJwksAddress(iss string) (string, error) {
 	var resp = new(openIDConfig)
 	r, err := http.Get(fmt.Sprintf("%s/%s", strings.TrimSuffix(iss, "/"), openIDConfigPath))
@@ -49,7 +39,18 @@ func loadJwksAddress(iss string) (string, error) {
 
 // publicKeyFromKeyCloak - get RSA Public Key from external storage (KeyCloak)
 func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refactor
-	r, err := http.Get(fmt.Sprintf("%s%s", iss, openIDConfigPath))
+	var (
+		certPath string
+		err      error
+	)
+	certPath, _ = cfg.CertPath(iss)
+	if certPath == "" {
+		certPath, err = loadJwksAddress(iss)
+		if err != nil {
+			return nil, err
+		}
+	}
+	r, err := http.Get(certPath)
 	if err != nil {
 		return nil, err
 	}

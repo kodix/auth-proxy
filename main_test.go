@@ -379,14 +379,20 @@ func Test_handler(t *testing.T) {
 
 func Test_publicKeyFromKeyCloak(t *testing.T) {
 	st := http.NewServeMux()
-	st.HandleFunc("/auth/realms/test"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
+	st.HandleFunc("/auth/realms/test/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request){
+		w.Write([]byte(`{"jwks_uri":"http://localhost:1112/auth/realms/test/protocol/openid-connect/certs"}`))
+	})
+	st.HandleFunc("/auth/realms/error/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request){
+		w.Write([]byte(`{"jwks_uri":"http://localhost:1112/auth/realms/error/protocol/openid-connect/certs"}`))
+	})
+	st.HandleFunc("/auth/realms/test/protocol/openid-connect/certs", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"keys":[{
                 "alg":"RS256",
                         "e":"AQAB",
                         "n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw"
                         }]}`))
 	})
-	st.HandleFunc("/auth/realms/error"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
+	st.HandleFunc("/auth/realms/error/protocol/openid-connect/certs", func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})
 	go func() {

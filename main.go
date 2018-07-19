@@ -29,10 +29,11 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"sync"
 )
 
 var keys = newKeyCache()
-var cfg *config
+var cfg = newConfig()
 var regex = make(map[*regexp.Regexp]string)
 
 var argv struct {
@@ -56,7 +57,6 @@ func init() {
 	health.SetCapacity(argv.Cap)
 	loadConfig()
 	compileRegex()
-	loadAllJwksAddresses()
 }
 
 func main() {
@@ -222,8 +222,47 @@ func setXAuthHeaders(r *http.Request, tok *jwt.Token) {
 }
 
 type config struct {
-	Rewrite map[string]string `json:"rewrite"`
-	Issuers map[string]string `json:"issuers"`
+	mu      sync.RWMutex
+	rewrite map[string]string
+	issuers map[string]string
+}
+
+func newConfig() *config {
+	return &config{
+		rewrite: make(map[string]string),
+		issuers: make(map[string]string),
+	}
+}
+
+func (c *config) SetRewrite(rule map[string]string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.rewrite = rule
+}
+
+func (c *config) Rewrite() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.rewrite
+}
+
+func (c *config) Issuers() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.issuers
+}
+
+func (c *config) SetIss(iss, certPath string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.issuers[iss] = certPath
+}
+
+func (c *config) CertPath(iss string) (string, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	res, ok := c.issuers[iss]
+	return res, ok
 }
 
 func accessXAuthHeaders(v map[string]interface{}, r *http.Request) {
@@ -246,7 +285,8 @@ func mapXAuthHeaders(key string, v map[string]interface{}, r *http.Request) {
 
 // compileRegex - compile regexps from config
 func compileRegex() {
-	for k, v := range cfg.Rewrite {
+	rules := cfg.Rewrite()
+	for k, v := range rules {
 		r := regexp.MustCompile(k)
 		regex[r] = v
 	}
@@ -256,14 +296,12 @@ func compileRegex() {
 func loadConfig() {
 	c := new(struct {
 		Rewrite map[string]string `json:"rewrite"`
-		Issuers []string `json:"issuers"`
+		Issuers []string          `json:"issuers"`
 	})
-	cfg = new(config)
 	must.UnmarshalFile(c, argv.Config)
-	cfg.Rewrite = c.Rewrite
-	cfg.Issuers = make(map[string]string)
+	cfg.SetRewrite(c.Rewrite)
 	for _, v := range c.Issuers {
-		cfg.Issuers[v] = ""
+		cfg.SetIss(v, "")
 	}
 	log.Infoln("configuration loaded")
 }
@@ -313,12 +351,8 @@ func randomRequestId() UUID {
 }
 
 func issuerExists(iss string) bool {
-	for k := range cfg.Issuers {
-		if k == iss {
-			return true
-		}
-	}
-	return false
+	_, ok := cfg.CertPath(iss)
+	return ok
 }
 
 // UUID is a 128 bit (16 byte) Universal Unique IDentifier as defined in RFC
