@@ -16,8 +16,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/abramd/log"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/kodix/log"
 )
 
 func Test_clearXAuthHeaders(t *testing.T) {
@@ -379,14 +379,14 @@ func Test_handler(t *testing.T) {
 
 func Test_publicKeyFromKeyCloak(t *testing.T) {
 	st := http.NewServeMux()
-	st.HandleFunc("/auth/realms/test"+keycloakSuffix, func(w http.ResponseWriter, r *http.Request) {
+	st.HandleFunc("/auth/realms/test"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"keys":[{
                 "alg":"RS256",
                         "e":"AQAB",
                         "n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw"
                         }]}`))
 	})
-	st.HandleFunc("/auth/realms/error"+keycloakSuffix, func(w http.ResponseWriter, r *http.Request) {
+	st.HandleFunc("/auth/realms/error"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})
 	go func() {

@@ -8,21 +8,18 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/abramd/log"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gambol99/go-oidc/jose"
 	"github.com/gorilla/mux"
+	"github.com/kodix/log"
 	"github.com/kodix/utils/health"
 	"github.com/kodix/utils/must"
 	"github.com/kodix/utils/mw"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
-	"io/ioutil"
 	log2 "log"
 	"net/http"
 	"net/url"
@@ -59,6 +56,7 @@ func init() {
 	health.SetCapacity(argv.Cap)
 	loadConfig()
 	compileRegex()
+	loadAllJwksAddresses()
 }
 
 func main() {
@@ -127,38 +125,6 @@ func getKey(token *jwt.Token) (interface{}, error) {
 		keys.Set(tok, k)
 	}
 	return k, nil
-}
-
-var keycloakSuffix = "/protocol/openid-connect/certs"
-
-type keyCloakResponse struct {
-	Keys []jose.JWK `json:"keys"`
-}
-
-// publicKeyFromKeyCloak - get RSA Public Key from external storage (KeyCloak)
-func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refactor
-	r, err := http.Get(fmt.Sprintf("%s%s", iss, keycloakSuffix))
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	k := keyCloakResponse{}
-	err = json.Unmarshal(b, &k)
-	if err != nil {
-		return nil, err
-	}
-
-	j := k.Keys[0]
-
-	return &rsa.PublicKey{
-		N: j.Modulus,
-		E: j.Exponent,
-	}, nil
 }
 
 // handler - http.Handler
@@ -257,7 +223,7 @@ func setXAuthHeaders(r *http.Request, tok *jwt.Token) {
 
 type config struct {
 	Rewrite map[string]string `json:"rewrite"`
-	Issuers []string          `json:"issuers"`
+	Issuers map[string]string `json:"issuers"`
 }
 
 func accessXAuthHeaders(v map[string]interface{}, r *http.Request) {
@@ -288,9 +254,17 @@ func compileRegex() {
 }
 
 func loadConfig() {
-	c := new(config)
+	c := new(struct {
+		Rewrite map[string]string `json:"rewrite"`
+		Issuers []string `json:"issuers"`
+	})
+	cfg = new(config)
 	must.UnmarshalFile(c, argv.Config)
-	cfg = c
+	cfg.Rewrite = c.Rewrite
+	cfg.Issuers = make(map[string]string)
+	for _, v := range c.Issuers {
+		cfg.Issuers[v] = ""
+	}
 	log.Infoln("configuration loaded")
 }
 
@@ -339,8 +313,8 @@ func randomRequestId() UUID {
 }
 
 func issuerExists(iss string) bool {
-	for _, v := range cfg.Issuers {
-		if v == iss {
+	for k := range cfg.Issuers {
+		if k == iss {
 			return true
 		}
 	}
