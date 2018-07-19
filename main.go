@@ -5,37 +5,35 @@
 package main
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"net/http"
-	"strings"
-	"fmt"
-	"github.com/gorilla/mux"
-	"os"
-	"github.com/abramd/log"
-	"flag"
-	"encoding/json"
-	"regexp"
-	"net/url"
+	"crypto/rand"
 	"crypto/rsa"
-	"io/ioutil"
-	"strconv"
+	"encoding/hex"
 	"errors"
-	"github.com/gambol99/go-oidc/jose"
+	"flag"
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
+	"github.com/kodix/log"
 	"github.com/kodix/utils/health"
-	"io"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/kodix/utils/must"
 	"github.com/kodix/utils/mw"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/kodix/utils/must"
-	"os/signal"
-	"syscall"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"io"
 	log2 "log"
-	"crypto/rand"
-	"encoding/hex"
+	"net/http"
+	"net/url"
+	"os"
+	"os/signal"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
+	"syscall"
 )
 
 var keys = newKeyCache()
-var cfg *config
+var cfg = newConfig()
 var regex = make(map[*regexp.Regexp]string)
 
 var argv struct {
@@ -127,38 +125,6 @@ func getKey(token *jwt.Token) (interface{}, error) {
 		keys.Set(tok, k)
 	}
 	return k, nil
-}
-
-var keycloakSuffix = "/protocol/openid-connect/certs"
-
-type keyCloakResponse struct {
-	Keys []jose.JWK `json:"keys"`
-}
-
-// publicKeyFromKeyCloak - get RSA Public Key from external storage (KeyCloak)
-func publicKeyFromKeyCloak(iss string) (*rsa.PublicKey, error) { // TODO: refactor
-	r, err := http.Get(fmt.Sprintf("%s%s", iss, keycloakSuffix))
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	k := keyCloakResponse{}
-	err = json.Unmarshal(b, &k)
-	if err != nil {
-		return nil, err
-	}
-
-	j := k.Keys[0]
-
-	return &rsa.PublicKey{
-		N: j.Modulus,
-		E: j.Exponent,
-	}, nil
 }
 
 // handler - http.Handler
@@ -256,8 +222,47 @@ func setXAuthHeaders(r *http.Request, tok *jwt.Token) {
 }
 
 type config struct {
-	Rewrite map[string]string `json:"rewrite"`
-	Issuers []string          `json:"issuers"`
+	mu      sync.RWMutex
+	rewrite map[string]string
+	issuers map[string]string
+}
+
+func newConfig() *config {
+	return &config{
+		rewrite: make(map[string]string),
+		issuers: make(map[string]string),
+	}
+}
+
+func (c *config) SetRewrite(rule map[string]string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.rewrite = rule
+}
+
+func (c *config) Rewrite() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.rewrite
+}
+
+func (c *config) Issuers() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.issuers
+}
+
+func (c *config) SetIss(iss, certPath string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.issuers[iss] = certPath
+}
+
+func (c *config) CertPath(iss string) (string, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	res, ok := c.issuers[iss]
+	return res, ok
 }
 
 func accessXAuthHeaders(v map[string]interface{}, r *http.Request) {
@@ -280,7 +285,8 @@ func mapXAuthHeaders(key string, v map[string]interface{}, r *http.Request) {
 
 // compileRegex - compile regexps from config
 func compileRegex() {
-	for k, v := range cfg.Rewrite {
+	rules := cfg.Rewrite()
+	for k, v := range rules {
 		r := regexp.MustCompile(k)
 		regex[r] = v
 	}
@@ -288,9 +294,15 @@ func compileRegex() {
 }
 
 func loadConfig() {
-	c := new(config)
+	c := new(struct {
+		Rewrite map[string]string `json:"rewrite"`
+		Issuers []string          `json:"issuers"`
+	})
 	must.UnmarshalFile(c, argv.Config)
-	cfg = c
+	cfg.SetRewrite(c.Rewrite)
+	for _, v := range c.Issuers {
+		cfg.SetIss(v, "")
+	}
 	log.Infoln("configuration loaded")
 }
 
@@ -339,12 +351,8 @@ func randomRequestId() UUID {
 }
 
 func issuerExists(iss string) bool {
-	for _, v := range cfg.Issuers {
-		if v == iss {
-			return true
-		}
-	}
-	return false
+	_, ok := cfg.CertPath(iss)
+	return ok
 }
 
 // UUID is a 128 bit (16 byte) Universal Unique IDentifier as defined in RFC

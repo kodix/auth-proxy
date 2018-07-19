@@ -16,8 +16,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/abramd/log"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/kodix/log"
 )
 
 func Test_clearXAuthHeaders(t *testing.T) {
@@ -142,40 +142,40 @@ func (w *TestWriter) WriteHeader(v int) {
 }
 
 /*func Test_handler(t *testing.T) {
-	// FIXME: replace public key with jwk format (da@kodix.ru)
-	pkey := decPKey()
-	keys.Set("http://localhost:8080/auth/realms/master", pkey)
-	type args struct {
-		w http.ResponseWriter
-		r *http.Request
-	}
-	tests := []struct {
-		name string
-		args args
-		want *http.Request
-	}{
-		{
-			"",
-			args{
-				r: &http.Request{
-					URL:    &url.URL{Path: "/test", RawQuery: "test=test"},
-					Header: http.Header{"Authorization": []string{"Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InV1aWQifQ.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvYXV0aC9yZWFsbXMvbWFzdGVyIiwiaWF0IjoxNTE2MjM5MDIyfQ.PqDqS9clU9q7_Z_Wc4x1nhtF_-39fnP9EKnM80o4wl01RullPVZ7SQ8sHqI2AooZGZ-f3HfDuKlgM5kOPkKclPIKuJoGmfmWYRi0uA8NWRiPZ0bkNfLT_gIOGRqKhiYc85XFkfDn5XY7gxgTUxwLcrEaubLz1XuGK2gHzHE4Tk9Nx7uYrZ_F-dJOKbch-OdLaHB0BAzmPU5TiDpUAfznJEDlXwowHXuaG2ZFwMKlLlPpUBCO2nXoAMUqofiuYlFi4YzYDhIXeM6J7jULOarYHl2sI9p9ZM-bd5bbwMNBwIPXOTMYPMYbMS-A9wys1Lcd5-agilBj2v4CV1UoPhlsRw"}}},
-				w: NewWriter(),
-			},
-			&http.Request{
-				URL:    &url.URL{Path: "/test", RawQuery: "test=test"},
-				Header: http.Header{"X-Auth-Iss": []string{"http://localhost:8080/auth/realms/master"}, "X-Auth-Iat": []string{"1516239022"}, "Authorization": []string{"Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InV1aWQifQ.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvYXV0aC9yZWFsbXMvbWFzdGVyIiwiaWF0IjoxNTE2MjM5MDIyfQ.PqDqS9clU9q7_Z_Wc4x1nhtF_-39fnP9EKnM80o4wl01RullPVZ7SQ8sHqI2AooZGZ-f3HfDuKlgM5kOPkKclPIKuJoGmfmWYRi0uA8NWRiPZ0bkNfLT_gIOGRqKhiYc85XFkfDn5XY7gxgTUxwLcrEaubLz1XuGK2gHzHE4Tk9Nx7uYrZ_F-dJOKbch-OdLaHB0BAzmPU5TiDpUAfznJEDlXwowHXuaG2ZFwMKlLlPpUBCO2nXoAMUqofiuYlFi4YzYDhIXeM6J7jULOarYHl2sI9p9ZM-bd5bbwMNBwIPXOTMYPMYbMS-A9wys1Lcd5-agilBj2v4CV1UoPhlsRw"}}},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			handler(tt.args.w, tt.args.r)
-			if !reflect.DeepEqual(tt.args.r, tt.want) {
-				t.Errorf("Error: %s. Want: %+v, got: %+v", tt.name, tt.want.Header, tt.args.r.Header)
-			}
-		})
-	}
-	keys.Clear()
+        // FIXME: replace public key with jwk format (da@kodix.ru)
+        pkey := decPKey()
+        keys.Set("http://localhost:8080/auth/realms/master", pkey)
+        type args struct {
+                w http.ResponseWriter
+                r *http.Request
+        }
+        tests := []struct {
+                name string
+                args args
+                want *http.Request
+        }{
+                {
+                        "",
+                        args{
+                                r: &http.Request{
+                                        URL:    &url.URL{Path: "/test", RawQuery: "test=test"},
+                                        Header: http.Header{"Authorization": []string{"Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InV1aWQifQ.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvYXV0aC9yZWFsbXMvbWFzdGVyIiwiaWF0IjoxNTE2MjM5MDIyfQ.PqDqS9clU9q7_Z_Wc4x1nhtF_-39fnP9EKnM80o4wl01RullPVZ7SQ8sHqI2AooZGZ-f3HfDuKlgM5kOPkKclPIKuJoGmfmWYRi0uA8NWRiPZ0bkNfLT_gIOGRqKhiYc85XFkfDn5XY7gxgTUxwLcrEaubLz1XuGK2gHzHE4Tk9Nx7uYrZ_F-dJOKbch-OdLaHB0BAzmPU5TiDpUAfznJEDlXwowHXuaG2ZFwMKlLlPpUBCO2nXoAMUqofiuYlFi4YzYDhIXeM6J7jULOarYHl2sI9p9ZM-bd5bbwMNBwIPXOTMYPMYbMS-A9wys1Lcd5-agilBj2v4CV1UoPhlsRw"}}},
+                                w: NewWriter(),
+                        },
+                        &http.Request{
+                                URL:    &url.URL{Path: "/test", RawQuery: "test=test"},
+                                Header: http.Header{"X-Auth-Iss": []string{"http://localhost:8080/auth/realms/master"}, "X-Auth-Iat": []string{"1516239022"}, "Authorization": []string{"Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InV1aWQifQ.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvYXV0aC9yZWFsbXMvbWFzdGVyIiwiaWF0IjoxNTE2MjM5MDIyfQ.PqDqS9clU9q7_Z_Wc4x1nhtF_-39fnP9EKnM80o4wl01RullPVZ7SQ8sHqI2AooZGZ-f3HfDuKlgM5kOPkKclPIKuJoGmfmWYRi0uA8NWRiPZ0bkNfLT_gIOGRqKhiYc85XFkfDn5XY7gxgTUxwLcrEaubLz1XuGK2gHzHE4Tk9Nx7uYrZ_F-dJOKbch-OdLaHB0BAzmPU5TiDpUAfznJEDlXwowHXuaG2ZFwMKlLlPpUBCO2nXoAMUqofiuYlFi4YzYDhIXeM6J7jULOarYHl2sI9p9ZM-bd5bbwMNBwIPXOTMYPMYbMS-A9wys1Lcd5-agilBj2v4CV1UoPhlsRw"}}},
+                },
+        }
+        for _, tt := range tests {
+                t.Run(tt.name, func(t *testing.T) {
+                        handler(tt.args.w, tt.args.r)
+                        if !reflect.DeepEqual(tt.args.r, tt.want) {
+                                t.Errorf("Error: %s. Want: %+v, got: %+v", tt.name, tt.want.Header, tt.args.r.Header)
+                        }
+                })
+        }
+        keys.Clear()
 }*/
 
 func decPKey() *rsa.PublicKey {
@@ -336,60 +336,66 @@ func Test_handler(t *testing.T) {
 	}
 
 	/*pk, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(`-----BEGIN RSA PRIVATE KEY-----
-MIIEogIBAAKCAQEAwTkhm8M9OpEF8SuQaq0zcBlkB6Bhxvw1k3WIuAL18BuGvLmF
-yjR9faauupAb9SmpONRCIwmxj0s371AzzBQuPBdfAk/0xu7rMybdEV1ZEqfhw/9w
-7fJNfzSPUo/0OICGZORSPSStUJUvGOzWGucVOlEjd2eHkqct7ntV+nbkjBrF3kta
-Kt1SGAv6eeSDBPcBR0rAz6DTqN6J83Cgyf8oXsVTEbArxg5489v/PyakXDW9GqG3
-ta2mbzpvrqI+bSOxWDyJcjw2sP7NQJqoiycjrnynr028pUKuQEMyNCsnVz84F8N6
-2Wc9+QlGj7Mr0qNQ0HsUJsUiBAGxh+ZVcdo6FwIDAQABAoIBAGX2FuUSDsJT+tW7
-zlZslUMnMuDPYilVt5PbpsyrS0przBrUr2P3dO0UQwnRt98UH+cMIuZIXDkoURjo
-spyTXZ56GrmmpZ1AQD7a2Dcski9FBd6eceIuRXTFsIe5zP7v23tr/HWlYAuw3YyC
-lazWmh4O6O8+Y40gyR0aWlFz4cCICLEhusR48n31uKaEXlcdHZ6N+vmgvLoIn3X1
-l49qXZfPIykOaecRFwSDvKwLmX72kMp7bNV1PQBll27K+oUBXoVM3xnLTo0YsPqc
-vji2RTz6rQwcAQt0ih6kQTMdtizo2bcmOiOGAb768BetXP7G/LOjEpexdyzYm4aR
-1e7xqCECgYEA8Yt+IEyFNdGb45qGnmpcRTKEN5BI0BxTPlB9dB/M8BpsC4wP/qnB
-lzhJfLIq9W8icu5vJycG4TDzJSpqqlal6icGiOb+UsINzTSuCqy8tV1OgI62DmEY
-doSXjLXiRUJWpwvsGSWEkNr9foWWyFufwZ4IgQsB7GY4D0ZN4ftWRWcCgYEAzMlX
-hRsZNFV6ZX/6by6krZ6AbF2oulcUsHJUe8/lxjkbO2Uw8H7Xmof6lH71+NQKKg9x
-1rgEFxSVVEy5nZP08HiNm4ZUtawaRLl8Ix/50yMV7oWqZJ98KK64hUKZYglO/1un
-wmVOmjgLvm0wkfORdDfBvhL9e5URsbf89Uv0R9ECgYB6xKmghQQX7KfNMVdG4Uxw
-p1JoY19+10bAH20EPr2NNADChbgDegi5cZR4Wp5XDNt3ixTX05A9mQGcXEjGty+x
-KZC6uJ1/Nr6JFEN5jX6EuB4UXXTPLi6e3pmgnTmadjNQyFCCH32XmpbJXeDbiSZT
-5Jzx6cRagUHxEYy4VWTt9QKBgDl5NHfl4BABAWXlIgr8Izma514Cdy087VCL9cv9
-z/Xu5wanYrHMV4RGL3xnmW7pS6T8Sq3BXVyA6VwMYHeqI68tlkiUzcdi8shg6kcN
-XVb1XN1hZC3zWKwuRRkZVOTfyez+8zkqp4G+wwUBrgT4P9VHJLfMqpl5f8rJ4VOS
-qo9RAoGAHrOFC0uJfQfa68O/nMUIp7eyycT/IJUwm7iQXcSr8HaGWrQAFdrBTG77
-dkSoSbjT6FbfVFsaQY/2XMKh206wmHfMeLAVu55IyRvtdQMgonwd4O7mMYaI6Icg
-nU4OxKmmF4BrYNpl5cS119PAApmnaRe3oebSgNNxFOsDUQKMtGg=
------END RSA PRIVATE KEY-----`))
-	keys.Set("http://localhost/test/test", pk.Public().(*rsa.PublicKey))
+	MIIEogIBAAKCAQEAwTkhm8M9OpEF8SuQaq0zcBlkB6Bhxvw1k3WIuAL18BuGvLmF
+	yjR9faauupAb9SmpONRCIwmxj0s371AzzBQuPBdfAk/0xu7rMybdEV1ZEqfhw/9w
+	7fJNfzSPUo/0OICGZORSPSStUJUvGOzWGucVOlEjd2eHkqct7ntV+nbkjBrF3kta
+	Kt1SGAv6eeSDBPcBR0rAz6DTqN6J83Cgyf8oXsVTEbArxg5489v/PyakXDW9GqG3
+	ta2mbzpvrqI+bSOxWDyJcjw2sP7NQJqoiycjrnynr028pUKuQEMyNCsnVz84F8N6
+	2Wc9+QlGj7Mr0qNQ0HsUJsUiBAGxh+ZVcdo6FwIDAQABAoIBAGX2FuUSDsJT+tW7
+	zlZslUMnMuDPYilVt5PbpsyrS0przBrUr2P3dO0UQwnRt98UH+cMIuZIXDkoURjo
+	spyTXZ56GrmmpZ1AQD7a2Dcski9FBd6eceIuRXTFsIe5zP7v23tr/HWlYAuw3YyC
+	lazWmh4O6O8+Y40gyR0aWlFz4cCICLEhusR48n31uKaEXlcdHZ6N+vmgvLoIn3X1
+	l49qXZfPIykOaecRFwSDvKwLmX72kMp7bNV1PQBll27K+oUBXoVM3xnLTo0YsPqc
+	vji2RTz6rQwcAQt0ih6kQTMdtizo2bcmOiOGAb768BetXP7G/LOjEpexdyzYm4aR
+	1e7xqCECgYEA8Yt+IEyFNdGb45qGnmpcRTKEN5BI0BxTPlB9dB/M8BpsC4wP/qnB
+	lzhJfLIq9W8icu5vJycG4TDzJSpqqlal6icGiOb+UsINzTSuCqy8tV1OgI62DmEY
+	doSXjLXiRUJWpwvsGSWEkNr9foWWyFufwZ4IgQsB7GY4D0ZN4ftWRWcCgYEAzMlX
+	hRsZNFV6ZX/6by6krZ6AbF2oulcUsHJUe8/lxjkbO2Uw8H7Xmof6lH71+NQKKg9x
+	1rgEFxSVVEy5nZP08HiNm4ZUtawaRLl8Ix/50yMV7oWqZJ98KK64hUKZYglO/1un
+	wmVOmjgLvm0wkfORdDfBvhL9e5URsbf89Uv0R9ECgYB6xKmghQQX7KfNMVdG4Uxw
+	p1JoY19+10bAH20EPr2NNADChbgDegi5cZR4Wp5XDNt3ixTX05A9mQGcXEjGty+x
+	KZC6uJ1/Nr6JFEN5jX6EuB4UXXTPLi6e3pmgnTmadjNQyFCCH32XmpbJXeDbiSZT
+	5Jzx6cRagUHxEYy4VWTt9QKBgDl5NHfl4BABAWXlIgr8Izma514Cdy087VCL9cv9
+	z/Xu5wanYrHMV4RGL3xnmW7pS6T8Sq3BXVyA6VwMYHeqI68tlkiUzcdi8shg6kcN
+	XVb1XN1hZC3zWKwuRRkZVOTfyez+8zkqp4G+wwUBrgT4P9VHJLfMqpl5f8rJ4VOS
+	qo9RAoGAHrOFC0uJfQfa68O/nMUIp7eyycT/IJUwm7iQXcSr8HaGWrQAFdrBTG77
+	dkSoSbjT6FbfVFsaQY/2XMKh206wmHfMeLAVu55IyRvtdQMgonwd4O7mMYaI6Icg
+	nU4OxKmmF4BrYNpl5cS119PAApmnaRe3oebSgNNxFOsDUQKMtGg=
+	-----END RSA PRIVATE KEY-----`))
+					keys.Set("http://localhost/test/test", pk.Public().(*rsa.PublicKey))
 
-	j = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoyMDAwMDAwMDAwMCwiaWF0IjoxNTE2MjM5MDIyfQ.ssOsv13F2gawY2i9ai3Za3CBck_ieRxzsryCk2WB-n-2ZsF9kjgTCTPqHkhcwHvc-Kh60f07pkdafgyAykvQQjySEBHx0b-qfsg3MNZjJewOPCrAHe-0p4PU0c_JLoWzbd-npe7k6U3Pov4muw_JCquGgouJ892q3alrmPeE3vpkVQcfur7WkBd4qPFr3AUVtTsECDVcPrlmMG_NxhhjwcGK8yvozTw4XtyjI0fwe06ECCtYOK4C5jHKPJhIr3Tp5sqe5-NR_lYWeBhNV25POsxonwBDVwt1RaslHPIplLSMmj8xdfllmlrbTPshCuBAl1Ocd05KoYEjEo3ZHbXXUg"
-	w = httptest.NewRecorder()
-	r, err = http.NewRequest(http.MethodGet, "http://localhost/test/test", nil)
-	if err != nil {
-		t.Errorf("%s", err.Error())
-	}
-	r.Header.Set("Authorization", j)
-	handler(w, r)
-	if w.Code == http.StatusUnauthorized {
-		t.Errorf()
-	}*/
+					j = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoyMDAwMDAwMDAwMCwiaWF0IjoxNTE2MjM5MDIyfQ.ssOsv13F2gawY2i9ai3Za3CBck_ieRxzsryCk2WB-n-2ZsF9kjgTCTPqHkhcwHvc-Kh60f07pkdafgyAykvQQjySEBHx0b-qfsg3MNZjJewOPCrAHe-0p4PU0c_JLoWzbd-npe7k6U3Pov4muw_JCquGgouJ892q3alrmPeE3vpkVQcfur7WkBd4qPFr3AUVtTsECDVcPrlmMG_NxhhjwcGK8yvozTw4XtyjI0fwe06ECCtYOK4C5jHKPJhIr3Tp5sqe5-NR_lYWeBhNV25POsxonwBDVwt1RaslHPIplLSMmj8xdfllmlrbTPshCuBAl1Ocd05KoYEjEo3ZHbXXUg"
+					w = httptest.NewRecorder()
+					r, err = http.NewRequest(http.MethodGet, "http://localhost/test/test", nil)
+					if err != nil {
+									t.Errorf("%s", err.Error())
+					}
+					r.Header.Set("Authorization", j)
+					handler(w, r)
+					if w.Code == http.StatusUnauthorized {
+									t.Errorf()
+					}*/
 }
 
 func Test_publicKeyFromKeyCloak(t *testing.T) {
 	st := http.NewServeMux()
-	st.HandleFunc("/auth/realms/test" + keycloakSuffix, func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"keys":[{
-          	"alg":"RS256",
-			"e":"AQAB",
-			"n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw"
-			}]}`))
+	st.HandleFunc("/auth/realms/test/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"jwks_uri":"http://localhost:1112/auth/realms/test/protocol/openid-connect/certs"}`))
 	})
-	st.HandleFunc("/auth/realms/error" + keycloakSuffix, func(w http.ResponseWriter, r *http.Request) {
+	st.HandleFunc("/auth/realms/error/"+openIDConfigPath, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"jwks_uri":"http://localhost:1112/auth/realms/error/protocol/openid-connect/certs"}`))
+	})
+	st.HandleFunc("/auth/realms/test/protocol/openid-connect/certs", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"keys":[{
+                "alg":"RS256",
+                        "e":"AQAB",
+                        "n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw"
+                        }]}`))
+	})
+	st.HandleFunc("/auth/realms/error/protocol/openid-connect/certs", func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})
-	go func(){
+	go func() {
 		log.Fatalln(http.ListenAndServe(":1112", st))
 	}()
 
