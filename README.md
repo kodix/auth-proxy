@@ -1,6 +1,5 @@
-# Auth Proxy
+# Auth Proxy [![Build Status](https://travis-ci.org/kodix/auth-proxy.svg)](https://travis-ci.org/kodix/auth-proxy) [![Go Report Card](https://goreportcard.com/badge/github.com/kodix/auth-proxy)](https://goreportcard.com/report/github.com/kodix/auth-proxy)
 Parse and verify JWT-token, replace it with X-Auth headers.
-[![Build Status](https://travis-ci.org/kodix/auth-proxy.svg)](https://travis-ci.org/kodix/auth-proxy)
 
 ## Usage
 Run with '-h' argument
